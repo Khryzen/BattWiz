@@ -1,49 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/batteryLevelTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:textSize="18sp"
-        android:textStyle="bold"/>
-
-    <TextView
-        android:id="@+id/chargingStatusTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/batteryLevelTextView"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:textSize="18sp"
-        android:textStyle="bold"/>
-
-    <TextView
-        android:id="@+id/estimatedBatteryLifeTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/appsListView"
-        android:layout_margin="16dp"
-        android:textSize="18sp"
-        android:textStyle="bold"/>
-    <TextView
-        android:id="@+id/dischargeRateTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/estimatedBatteryLifeTextView"
-        android:layout_margin="16dp"
-        android:textSize="18sp"
-        android:textStyle="bold"/>
-
-    <ListView
-        android:id="@+id/appsListView"
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/chargingStatusTextView"
-        android:layout_marginTop="16dp"/>
-</RelativeLayout>
+        tools:context=".MainActivity">
+
+        <TextView
+            android:id="@+id/batteryLevelTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:textSize="20sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/brightnessLabelTextView"
+            android:text="Brightness Control"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:layout_below="@id/batteryLevelTextView"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+
+
+        <SeekBar
+            android:id="@+id/brightnessSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/brightnessLabelTextView"
+            android:layout_marginTop="16dp"
+            android:max="255" />
+
+        <TextView
+            android:id="@+id/bluetoothStatusLabel"
+            android:text="Brightness Control"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:layout_below="@id/brightnessSeekBar"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+
+        <Switch
+            android:id="@+id/bluetoothSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/bluetoothStatusLabel"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:id="@+id/chargingStatusTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/bluetoothSwitch"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?android:textColorPrimary"/>
+
+        <TextView
+            android:id="@+id/estimatedBatteryLifeTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/appsListView"
+            android:layout_margin="16dp"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/dischargeRateTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/estimatedBatteryLifeTextView"
+            android:layout_margin="16dp"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+        <TextView
+            android:id="@+id/batteryCapacityTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/dischargeRateTextView"
+            android:layout_margin="16dp"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+        <ListView
+            android:id="@+id/appsListView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/chargingStatusTextView"
+            android:layout_marginTop="16dp"/>
+
+    </RelativeLayout>
+</ScrollView>
