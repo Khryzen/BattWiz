@@ -19,24 +19,26 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Handler
 import android.widget.SeekBar
 import android.bluetooth.BluetoothAdapter
-import android.location.LocationManager
+import android.bluetooth.BluetoothManager
 import android.net.wifi.WifiManager
 import android.os.Looper
 import android.widget.Button
 import android.widget.Switch
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
 
 class MainActivity : AppCompatActivity() {
 
     lateinit var context: Context
+    // Inside your activity or fragment
+    private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothManager.adapter
+    }
 
 //    Bluetooth
     private val REQUEST_ENABLE_BT = 1
     private val REQUEST_ENABLE_BT_PERMISSION = 2
     private val REQUEST_DISABLE_BT_PERMISSION = 3
-    private lateinit var bluetoothAdapter: BluetoothAdapter
-
     private lateinit var bluetoothSwitch: Switch
     private lateinit var wlanSwitch: Switch
 
@@ -50,12 +52,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var wifiManager: WifiManager
     private lateinit var closeAppsButton: Button
     private lateinit var startMonitoringButton: Button
+    private lateinit var stopMonitoringButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-
 
         batteryLevelTextView = findViewById(R.id.batteryLevelTextView)
         chargingStatusTextView = findViewById(R.id.chargingStatusTextView)
@@ -66,6 +67,7 @@ class MainActivity : AppCompatActivity() {
         wlanSwitch = findViewById<Switch>(R.id.wlanSwitch)
         closeAppsButton = findViewById<Switch>(R.id.closeAppsButton)
         startMonitoringButton = findViewById(R.id.startMonitoringButton)
+        stopMonitoringButton = findViewById(R.id.stopMonitoringButton)
 
 
         // Service
@@ -76,6 +78,17 @@ class MainActivity : AppCompatActivity() {
             startService(startMonitoringIntent)
             val monitoringIntent = Intent(this, MonitoringService::class.java)
             startService(monitoringIntent)
+        }
+
+        stopMonitoringButton.setOnClickListener{
+            val stopBrightnessServiceIntent = Intent(this, BrightnessMonitorService::class.java)
+            stopService(stopBrightnessServiceIntent)
+
+            val stopStatusServiceIntent = Intent(this, StatusMonitorService::class.java)
+            stopService(stopStatusServiceIntent)
+
+            val stopMonitoringServiceIntent = Intent(this, MonitoringService::class.java)
+            stopService(stopMonitoringServiceIntent)
         }
 
         wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
@@ -96,9 +109,6 @@ class MainActivity : AppCompatActivity() {
         })
 
         // Bluetooth
-        // Initialize BluetoothAdapter
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-
         // Check if device supports Bluetooth
         if (bluetoothAdapter == null) {
             bluetoothSwitch.isEnabled = false
@@ -109,10 +119,8 @@ class MainActivity : AppCompatActivity() {
         // Set listener for Bluetooth switch
         bluetoothSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                // User wants to enable Bluetooth
                 enableBluetooth()
             } else {
-                // User wants to disable Bluetooth
                 disableBluetooth()
             }
         }
@@ -123,10 +131,8 @@ class MainActivity : AppCompatActivity() {
 
         wlanSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                // User wants to enable WLAN
                 enableWlan()
             } else {
-                // User wants to disable WLAN
                 disableWlan()
             }
         }
@@ -152,36 +158,38 @@ class MainActivity : AppCompatActivity() {
     }
     //Bluetooth
     private fun updateBluetoothStatus() {
-        bluetoothSwitch.isChecked = bluetoothAdapter.isEnabled
+        bluetoothSwitch.isChecked = bluetoothAdapter!!.isEnabled
     }
-
-    private fun enableBluetooth() {
-        if (!bluetoothAdapter.isEnabled) {
-            // Check if the app has BLUETOOTH_ADMIN permission
-            if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED) {
-                // Permission is granted, enable Bluetooth
-                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
-            } else {
-                // Permission is not granted, request the permission
-                requestPermissions(arrayOf(android.Manifest.permission.BLUETOOTH_ADMIN), REQUEST_ENABLE_BT_PERMISSION)
-            }
+private fun enableBluetooth() {
+    if (!bluetoothAdapter?.isEnabled!!) {
+        // Check if the app has BLUETOOTH_ADMIN permission
+        if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED) {
+            // Permission is granted, enable Bluetooth
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+        } else {
+            // Permission is not granted, request the permission
+            requestPermissions(arrayOf(Manifest.permission.BLUETOOTH_ADMIN), REQUEST_ENABLE_BT_PERMISSION)
         }
     }
-    private fun disableBluetooth() {
-        if (bluetoothAdapter.isEnabled) {
-            // Check if the app has BLUETOOTH_ADMIN permission
-            if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED) {
-                // Permission is granted, disable Bluetooth
-                bluetoothAdapter.disable()
-            } else {
-                // Permission is not granted, request the permission
-                requestPermissions(arrayOf(android.Manifest.permission.BLUETOOTH_ADMIN), REQUEST_DISABLE_BT_PERMISSION)
-            }
+    updateBluetoothStatus()
+}
+private fun disableBluetooth() {
+    if (bluetoothAdapter?.isEnabled == true) {
+        // Check if the app has BLUETOOTH_ADMIN permission
+        if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED) {
+            // Permission is granted, disable Bluetooth
+            bluetoothAdapter?.disable()
+            updateBluetoothStatus()
+        } else {
+            // Permission is not granted, request the permission
+            requestPermissions(arrayOf(Manifest.permission.BLUETOOTH_ADMIN), REQUEST_DISABLE_BT_PERMISSION)
         }
+    } else {
+        // Bluetooth is already disabled
         updateBluetoothStatus()
     }
-
+}
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_ENABLE_BT) {
@@ -196,13 +204,22 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
+            REQUEST_ENABLE_BT_PERMISSION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission granted, try enabling Bluetooth again
+                    enableBluetooth()
+                } else {
+                    // Permission denied
+                    Toast.makeText(this, "Permission denied to enable Bluetooth", Toast.LENGTH_SHORT).show()
+                }
+            }
             REQUEST_DISABLE_BT_PERMISSION -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // Permission granted, disable Bluetooth
+                    // Permission granted, try disabling Bluetooth again
                     disableBluetooth()
                 } else {
-                    // Permission denied, show a message or handle accordingly
-                    Toast.makeText(this, "Permission to disable Bluetooth was denied", Toast.LENGTH_SHORT).show()
+                    // Permission denied
+                    Toast.makeText(this, "Permission denied to disable Bluetooth", Toast.LENGTH_SHORT).show()
                 }
             }
         }
