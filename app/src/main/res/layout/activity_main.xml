@@ -13,9 +13,12 @@
             android:id="@+id/batteryLevelTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
             android:textSize="20sp"
-            android:textStyle="bold"/>
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/brightnessLabelTextView"
@@ -27,7 +30,6 @@
             android:textSize="18sp"
             android:textStyle="bold"/>
 
-
         <SeekBar
             android:id="@+id/brightnessSeekBar"
             android:layout_width="match_parent"
@@ -35,30 +37,30 @@
             android:layout_below="@id/brightnessLabelTextView"
             android:layout_marginTop="16dp"
             android:max="255" />
-
-        <TextView
-            android:id="@+id/bluetoothStatusLabel"
-            android:text="Brightness Control"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:layout_below="@id/brightnessSeekBar"
-            android:textSize="18sp"
-            android:textStyle="bold"/>
-
         <Switch
             android:id="@+id/bluetoothSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/bluetoothStatusLabel"
+            android:layout_below="@id/brightnessSeekBar"
+            android:text="Bluetooth"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="16dp"/>
+
+        <Switch
+            android:id="@+id/wlanSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_below="@id/bluetoothSwitch"
+            android:layout_centerHorizontal="true"
+            android:text="WiFI(WLAN)"
+            android:checked="false" />
 
         <TextView
             android:id="@+id/chargingStatusTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/bluetoothSwitch"
+            android:layout_below="@id/wlanSwitch"
             android:layout_marginStart="16dp"
             android:layout_marginTop="8dp"
             android:textSize="18sp"
@@ -69,33 +71,64 @@
             android:id="@+id/estimatedBatteryLifeTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/appsListView"
+            android:layout_below="@id/chargingStatusTextView"
             android:layout_margin="16dp"
             android:textSize="18sp"
             android:textStyle="bold"/>
 
+<!--        <TextView-->
+<!--            android:id="@+id/dischargeRateTextView"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_below="@id/estimatedBatteryLifeTextView"-->
+<!--            android:layout_margin="16dp"-->
+<!--            android:textSize="18sp"-->
+<!--            android:textStyle="bold"/>-->
         <TextView
-            android:id="@+id/dischargeRateTextView"
+            android:id="@+id/batteryCapacityTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/estimatedBatteryLifeTextView"
             android:layout_margin="16dp"
             android:textSize="18sp"
             android:textStyle="bold"/>
-        <TextView
-            android:id="@+id/batteryCapacityTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/dischargeRateTextView"
-            android:layout_margin="16dp"
-            android:textSize="18sp"
-            android:textStyle="bold"/>
+
+<!--        <ListView-->
+<!--            android:id="@+id/appsListView"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="64dp"-->
+<!--            android:layout_below="@id/dischargeRateTextView"-->
+<!--            android:layout_marginStart="16dp"-->
+<!--            android:layout_marginTop="16dp"-->
+<!--            android:layout_marginEnd="16dp" />-->
         <ListView
             android:id="@+id/appsListView"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
+            android:layout_height="254dp"
+            android:layout_below="@id/batteryCapacityTextView"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:scrollbars="none" />
+        <Button
+            android:id="@+id/closeAppsButton"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/chargingStatusTextView"
-            android:layout_marginTop="16dp"/>
-
+            android:layout_below="@id/appsListView"
+            android:layout_margin="16dp"
+            android:textSize="18sp"
+            android:layout_centerHorizontal="true"
+            android:text="Optimize Running Apps"
+            />
+        <Button
+            android:id="@+id/startMonitoringButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/closeAppsButton"
+            android:layout_margin="16dp"
+            android:textSize="18sp"
+            android:layout_centerHorizontal="true"
+            android:text="Start Monitoring Service"
+            />
     </RelativeLayout>
 </ScrollView>

@@ -1,6 +1,7 @@
 package com.bsu.battwiz
 
 import android.Manifest
+import android.app.ActivityManager
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.BroadcastReceiver
@@ -18,6 +19,10 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Handler
 import android.widget.SeekBar
 import android.bluetooth.BluetoothAdapter
+import android.location.LocationManager
+import android.net.wifi.WifiManager
+import android.os.Looper
+import android.widget.Button
 import android.widget.Switch
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
@@ -32,8 +37,8 @@ class MainActivity : AppCompatActivity() {
     private val REQUEST_DISABLE_BT_PERMISSION = 3
     private lateinit var bluetoothAdapter: BluetoothAdapter
 
-    private lateinit var bluetoothStatusLabel: TextView
     private lateinit var bluetoothSwitch: Switch
+    private lateinit var wlanSwitch: Switch
 
     private lateinit var batteryLevelTextView: TextView
     private lateinit var chargingStatusTextView: TextView
@@ -42,24 +47,38 @@ class MainActivity : AppCompatActivity() {
     private lateinit var dischargeRateTextView: TextView
     private lateinit var batteryCapacityTextView: TextView
     private lateinit var brightnessSeekBar: SeekBar
-
-    private val handler = Handler()
-    private val updateIntervalMillis = 1000L // 1 second interval
-    private lateinit var runnable: Runnable
-
+    private lateinit var wifiManager: WifiManager
+    private lateinit var closeAppsButton: Button
+    private lateinit var startMonitoringButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+
+
         batteryLevelTextView = findViewById(R.id.batteryLevelTextView)
         chargingStatusTextView = findViewById(R.id.chargingStatusTextView)
         appsListView = findViewById(R.id.appsListView)
         estimatedBatteryLifeTextView = findViewById(R.id.estimatedBatteryLifeTextView)
-        dischargeRateTextView = findViewById(R.id.dischargeRateTextView)
         batteryCapacityTextView = findViewById(R.id.batteryCapacityTextView)
-        bluetoothStatusLabel = findViewById(R.id.bluetoothStatusLabel)
         bluetoothSwitch = findViewById(R.id.bluetoothSwitch)
+        wlanSwitch = findViewById<Switch>(R.id.wlanSwitch)
+        closeAppsButton = findViewById<Switch>(R.id.closeAppsButton)
+        startMonitoringButton = findViewById(R.id.startMonitoringButton)
+
+
+        // Service
+        startMonitoringButton.setOnClickListener{
+            val startServiceIntent = Intent(this, BrightnessMonitorService::class.java)
+            startService(startServiceIntent)
+            val startMonitoringIntent = Intent(this, StatusMonitorService::class.java)
+            startService(startMonitoringIntent)
+            val monitoringIntent = Intent(this, MonitoringService::class.java)
+            startService(monitoringIntent)
+        }
+
+        wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
 
         context = applicationContext
         // Brightness control
@@ -82,7 +101,6 @@ class MainActivity : AppCompatActivity() {
 
         // Check if device supports Bluetooth
         if (bluetoothAdapter == null) {
-            bluetoothStatusLabel.text = "Bluetooth is not supported on this device"
             bluetoothSwitch.isEnabled = false
             return
         }
@@ -99,6 +117,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // WLAN
+        // Reflect the initial state of WLAN
+        wlanSwitch.isChecked = isWlanEnabled()
+
+        wlanSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                // User wants to enable WLAN
+                enableWlan()
+            } else {
+                // User wants to disable WLAN
+                disableWlan()
+            }
+        }
+        closeAppsButton.setOnClickListener {
+            closeBackgroundApps()
+        }
+
         if (hasUsageStatsPermission()) {
             updateAppUsageStats()
         } else {
@@ -111,42 +146,13 @@ class MainActivity : AppCompatActivity() {
         }
         registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
 
-        // Initialize the runnable
-        runnable = object : Runnable {
-            override fun run() {
-                // Call your function or perform any task here
-                val dischargeRate = getDischargeRatePerHour()
-                dischargeRateTextView.text = dischargeRate.toString()
-                estimateBatteryLife(intent)
-
-                // Schedule the next execution
-                handler.postDelayed(this, updateIntervalMillis)
-            }
-        }
-
-        // Start the periodic task
-        handler.post(runnable)
-
         if (!hasUsageStatsPermission()) {
             requestUsageStatsPermission()
         }
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        // Stop the periodic task when the activity is destroyed to avoid memory leaks
-        handler.removeCallbacks(runnable)
-    }
-
     //Bluetooth
     private fun updateBluetoothStatus() {
-        if (bluetoothAdapter.isEnabled) {
-            bluetoothStatusLabel.text = "Bluetooth is enabled"
-            bluetoothSwitch.isChecked = true
-        } else {
-            bluetoothStatusLabel.text = "Bluetooth is disabled"
-            bluetoothSwitch.isChecked = false
-        }
+        bluetoothSwitch.isChecked = bluetoothAdapter.isEnabled
     }
 
     private fun enableBluetooth() {
@@ -201,7 +207,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     private fun updateBatteryInfo(intent: Intent) {
         val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
         val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
@@ -219,28 +224,11 @@ class MainActivity : AppCompatActivity() {
         val chargeRemaining = batteryManager.computeChargeTimeRemaining()
 
         batteryCapacityTextView.text = "Energy Counter: $capacity microampere-hours (uAh)/ Charge: $chargeRemaining"
-    }
 
-//    private fun updateAppUsageStats() {
-//        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-//        val endTime = System.currentTimeMillis()
-//        val startTime = endTime - 1000 * 60 * 60
-//        val usageStats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-//
-//        val topAppsList = usageStats
-//            .filter { it.totalTimeInForeground > 0 }
-//            .sortedByDescending { it.totalTimeInForeground }
-//            .map {
-//                try {
-//                    "${getAppNameFromPackageName(it.packageName)}: ${it.totalTimeInForeground / (1000 * 60)} minutes"
-//                } catch (e: PackageManager.NameNotFoundException) {
-//                    "${it.packageName}: ${it.totalTimeInForeground / (1000 * 60)} minutes"
-//                }
-//            }
-//
-//        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, topAppsList)
-//        appsListView.adapter = adapter
-//    }
+        val dischargeRate = getDischargeRatePerHour()
+//        dischargeRateTextView.text = dischargeRate.toString()
+        estimateBatteryLife(intent)
+    }
 
     private fun updateAppUsageStats() {
         val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
@@ -389,5 +377,55 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
             startActivity(intent)
         }
+    }
+
+    // WLAN
+    private fun isWlanEnabled(): Boolean {
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        return wifiManager.isWifiEnabled
+    }
+
+    private fun enableWlan() {
+        if (!wifiManager.isWifiEnabled) {
+            val success = wifiManager.setWifiEnabled(true)
+            if (!success) {
+                // Failed to enable WLAN
+                Toast.makeText(this, "Failed to enable WLAN", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun disableWlan() {
+        if (wifiManager.isWifiEnabled) {
+            val success = wifiManager.setWifiEnabled(false)
+            if (!success) {
+                // Failed to disable WLAN
+                Toast.makeText(this, "Failed to disable WLAN", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // Close background apps
+    private fun closeBackgroundApps() {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+
+        // Get the list of running app processes
+        val runningAppProcesses = activityManager.runningAppProcesses
+
+        for (processInfo in runningAppProcesses) {
+            // Exclude system apps and the current app itself
+            if (processInfo.importance >= ActivityManager.RunningAppProcessInfo.IMPORTANCE_BACKGROUND &&
+                processInfo.processName != packageName) {
+                activityManager.killBackgroundProcesses(processInfo.processName)
+            }
+        }
+
+        showDelayedToast()
+    }
+    private fun showDelayedToast() {
+        val delayMillis: Long = 2500
+        Handler(Looper.getMainLooper()).postDelayed({
+            Toast.makeText(this, "Background apps closed", Toast.LENGTH_SHORT).show()
+        }, delayMillis)
     }
 }

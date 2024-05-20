@@ -2,4 +2,5 @@
     <string name="app_name">BattWiz</string>
     <string name="battery_level">Battery Level: %1\$s%%</string>
     <string name="charging_status">Charging Status: %1\$s</string>
+    <string name="AnBO">AnBO</string>
 </resources>
