@@ -56,18 +56,24 @@ class MonitoringService : Service() {
     private fun sendNotifications() {
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        var notification = "Running services: "
 
         if (isLocationEnabled(applicationContext)) {
-            showNotification(applicationContext, notificationManager, "Please turn off Location to save battery")
+//            showNotification(applicationContext, notificationManager, "Please turn off Location to save battery")
+            notification += "GPS "
         }
 
         if (isBluetoothEnabled()) {
-            showNotification(applicationContext, notificationManager, "Please turn off Bluetooth to save battery")
+//            showNotification(applicationContext, notificationManager, "Please turn off Bluetooth to save battery")
+            notification += "Bluetooth "
         }
 
         if (isWifiEnabled(applicationContext)) {
-            showNotification(applicationContext, notificationManager, "Please turn off WLAN to save battery")
+//            showNotification(applicationContext, notificationManager, "Please turn off WLAN to save battery")
+            notification += "WLAN "
         }
+
+        showNotification(applicationContext, notificationManager, notification)
     }
 
     private fun isLocationEnabled(context: Context): Boolean {
@@ -142,7 +148,7 @@ class MonitoringReceiver : BroadcastReceiver() {
             .setContentTitle("Monitoring Service")
             .setContentText(message)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
 
         notificationManager.notify(MonitoringService.NOTIFICATION_ID, notification)

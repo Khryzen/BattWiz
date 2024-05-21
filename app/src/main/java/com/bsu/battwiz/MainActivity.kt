@@ -3,28 +3,32 @@ package com.bsu.battwiz
 import android.Manifest
 import android.app.ActivityManager
 import android.app.AppOpsManager
+import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.os.BatteryManager
-import android.os.Bundle
-import android.provider.Settings
-import android.widget.ArrayAdapter
-import android.widget.ListView
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Handler
-import android.widget.SeekBar
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
 import android.net.wifi.WifiManager
+import android.os.BatteryManager
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
+import android.util.Log
+import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.ListView
+import android.widget.SeekBar
 import android.widget.Switch
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -228,6 +232,20 @@ private fun disableBluetooth() {
         val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
         val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
         val batteryPct = level * 100 / scale.toFloat()
+        val isPresent = intent.getBooleanExtra("present", false)
+        val bundle = intent.extras
+        val str = bundle.toString()
+        var volts: Int = 0
+        var batteryLife = 0.0
+        Log.i("Battery Info", str)
+
+
+        if (isPresent) {
+            volts = bundle!!.getInt("voltage")
+        } else {
+            Toast.makeText(this, "Battery not present!!!", Toast.LENGTH_SHORT).show()
+        }
+
         batteryLevelTextView.text = "Battery Level: $batteryPct%"
 
         val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
@@ -237,14 +255,33 @@ private fun disableBluetooth() {
             "Charging Status: ${if (isCharging) "Charging" else "Discharging"}"
 
         val batteryManager = getSystemService(BATTERY_SERVICE) as BatteryManager
-        val capacity = batteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
-        val chargeRemaining = batteryManager.computeChargeTimeRemaining()
+        val capacity = (batteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER))/1000
+        val currentNow = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
+//        val totalCapacity = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        if (currentNow < 0){
+            batteryLife = capacity / ((currentNow * -1)*(1-0.05))
+        }
+        val hours = batteryLife.toInt()
+        val minutes = (batteryLife * 60).toInt() % 60
+        val seconds = (batteryLife * (60 * 60)).toInt() % 60
+        if (!isCharging && currentNow < 0) {
+            estimatedBatteryLifeTextView.text =
+                "Estimated Battery Life: $hours hours $minutes minutes $seconds seconds"
+        }
+        if(isCharging) {
+        estimatedBatteryLifeTextView.text =
+            "Currently charging"
+        }
+        if(currentNow < 0) {
+            estimatedBatteryLifeTextView.text =
+                "Estimating"
+        }
 
-        batteryCapacityTextView.text = "Energy Counter: $capacity microampere-hours (uAh)/ Charge: $chargeRemaining"
+        batteryCapacityTextView.text = "Energy Counter: $capacity (mAh)\n Discharge current: $currentNow \n volts: $volts mV"
 
-        val dischargeRate = getDischargeRatePerHour()
+//        val dischargeRate = getDischargeRatePerHour()
 //        dischargeRateTextView.text = dischargeRate.toString()
-        estimateBatteryLife(intent)
+//        estimateBatteryLife(intent)
     }
 
     private fun updateAppUsageStats() {
@@ -287,15 +324,15 @@ private fun disableBluetooth() {
         appsListView.adapter = adapter
     }
 
-    private fun getAppNameFromPackageName(packageName: String): String {
-        return try {
-            val packageManager = applicationContext.packageManager
-            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-            packageManager.getApplicationLabel(applicationInfo).toString()
-        } catch (e: PackageManager.NameNotFoundException) {
-            packageName
-        }
-    }
+//    private fun getAppNameFromPackageName(packageName: String): String {
+//        return try {
+//            val packageManager = applicationContext.packageManager
+//            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
+//            packageManager.getApplicationLabel(applicationInfo).toString()
+//        } catch (e: PackageManager.NameNotFoundException) {
+//            packageName
+//        }
+//    }
 
     private fun hasUsageStatsPermission(): Boolean {
         val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
@@ -312,65 +349,65 @@ private fun disableBluetooth() {
         startActivity(intent)
     }
 
-    private fun estimateBatteryLife(intent: Intent) {
-        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-        val batteryPct = level * 100 / scale.toFloat()
+//    private fun estimateBatteryLife(intent: Intent) {
+//        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+//        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+//        val batteryPct = level * 100 / scale.toFloat()
+//
+//        val dischargeRate = 10
+//        val estimatedHours = (batteryPct / dischargeRate).toInt()
+//        val estimatedMinutes = ((batteryPct % dischargeRate) * 60 / dischargeRate).toInt()
+//
+//        estimatedBatteryLifeTextView.text =
+//            "Estimated Battery Life: $estimatedHours hours $estimatedMinutes minutes"
+//    }
 
-        val dischargeRate = 10 // Placeholder: Assuming an average discharge rate of 10% per hour
-        val estimatedHours = (batteryPct / dischargeRate).toInt()
-        val estimatedMinutes = ((batteryPct % dischargeRate) * 60 / dischargeRate).toInt()
+//    private val LAST_MEASUREMENT_TIME_KEY = "last_measurement_time"
+//    private val BATTERY_LEVEL_KEY = "battery_level"
 
-        estimatedBatteryLifeTextView.text =
-            "Estimated Battery Life: $estimatedHours hours $estimatedMinutes minutes"
-    }
+//    fun getDischargeRatePerHour(): Double {
+////        val batteryManager = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+//        val batteryStatus: Intent? = registerReceiver(
+//            null,
+//            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+//        )
+//
+//        val currentBatteryLevel = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+//        val currentTimeMillis = System.currentTimeMillis()
+//
+//        // Calculate discharge rate
+//        val previousBatteryLevel = getPreviousBatteryLevel()
+//        val timeDiffHours =
+//            (currentTimeMillis - getLastMeasurementTimeMillis()) / (1000 * 60 * 60).toDouble()
+//        val dischargeRate =
+//            if (timeDiffHours > 0) (previousBatteryLevel - currentBatteryLevel) / timeDiffHours else 0.0
+//
+//        // Update last measurement time and battery level
+//        saveBatteryLevel(currentBatteryLevel)
+//        saveLastMeasurementTime(currentTimeMillis)
+//
+//        return dischargeRate
+//    }
 
-    private val LAST_MEASUREMENT_TIME_KEY = "last_measurement_time"
-    private val BATTERY_LEVEL_KEY = "battery_level"
-
-    fun getDischargeRatePerHour(): Double {
-//        val batteryManager = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-        val batteryStatus: Intent? = registerReceiver(
-            null,
-            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        )
-
-        val currentBatteryLevel = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
-        val currentTimeMillis = System.currentTimeMillis()
-
-        // Calculate discharge rate
-        val previousBatteryLevel = getPreviousBatteryLevel()
-        val timeDiffHours =
-            (currentTimeMillis - getLastMeasurementTimeMillis()) / (1000 * 60 * 60).toDouble()
-        val dischargeRate =
-            if (timeDiffHours > 0) (previousBatteryLevel - currentBatteryLevel) / timeDiffHours else 0.0
-
-        // Update last measurement time and battery level
-        saveBatteryLevel(currentBatteryLevel)
-        saveLastMeasurementTime(currentTimeMillis)
-
-        return dischargeRate
-    }
-
-    private fun saveBatteryLevel(level: Int) {
-        val sharedPreferences = getSharedPreferences("battery_data", Context.MODE_PRIVATE)
-        sharedPreferences.edit().putInt(BATTERY_LEVEL_KEY, level).apply()
-    }
-
-    private fun getPreviousBatteryLevel(): Int {
-        val sharedPreferences = getSharedPreferences("battery_data", Context.MODE_PRIVATE)
-        return sharedPreferences.getInt(BATTERY_LEVEL_KEY, 100)
-    }
-
-    private fun saveLastMeasurementTime(timeMillis: Long) {
-        val sharedPreferences = getSharedPreferences("battery_data", Context.MODE_PRIVATE)
-        sharedPreferences.edit().putLong(LAST_MEASUREMENT_TIME_KEY, timeMillis).apply()
-    }
-
-    private fun getLastMeasurementTimeMillis(): Long {
-        val sharedPreferences = getSharedPreferences("battery_data", Context.MODE_PRIVATE)
-        return sharedPreferences.getLong(LAST_MEASUREMENT_TIME_KEY, System.currentTimeMillis())
-    }
+//    private fun saveBatteryLevel(level: Int) {
+//        val sharedPreferences = getSharedPreferences("battery_data", Context.MODE_PRIVATE)
+//        sharedPreferences.edit().putInt(BATTERY_LEVEL_KEY, level).apply()
+//    }
+//
+//    private fun getPreviousBatteryLevel(): Int {
+//        val sharedPreferences = getSharedPreferences("battery_data", Context.MODE_PRIVATE)
+//        return sharedPreferences.getInt(BATTERY_LEVEL_KEY, 100)
+//    }
+//
+//    private fun saveLastMeasurementTime(timeMillis: Long) {
+//        val sharedPreferences = getSharedPreferences("battery_data", Context.MODE_PRIVATE)
+//        sharedPreferences.edit().putLong(LAST_MEASUREMENT_TIME_KEY, timeMillis).apply()
+//    }
+//
+//    private fun getLastMeasurementTimeMillis(): Long {
+//        val sharedPreferences = getSharedPreferences("battery_data", Context.MODE_PRIVATE)
+//        return sharedPreferences.getLong(LAST_MEASUREMENT_TIME_KEY, System.currentTimeMillis())
+//    }
 
     override fun onResume() {
         super.onResume()
@@ -436,13 +473,77 @@ private fun disableBluetooth() {
                 activityManager.killBackgroundProcesses(processInfo.processName)
             }
         }
+        val runningApps = getRunningApps()
 
+        if (!isUsageStatsPermissionGranted()) {
+            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+        } else {
+            val foregroundApps = getForegroundApps()
+            Log.i("Foreground Apps: ", foregroundApps.toString())
+        }
+        Log.i("Running Apps: ", runningApps.toString())
         showDelayedToast()
     }
+
+    private fun getRunningApps(): List<String> {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val runningAppProcesses = activityManager.runningAppProcesses
+        val runningApps = mutableListOf<String>()
+
+        runningAppProcesses?.let {
+            for (processInfo in it) {
+                runningApps.add(processInfo.processName)
+            }
+        }
+
+        // For devices with API level 21 and above, you can also use getRunningServices
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            val runningServices = activityManager.getRunningServices(Int.MAX_VALUE)
+            for (serviceInfo in runningServices) {
+                runningApps.add(serviceInfo.service.className)
+            }
+        }
+
+        return runningApps
+    }
+
     private fun showDelayedToast() {
         val delayMillis: Long = 2500
         Handler(Looper.getMainLooper()).postDelayed({
             Toast.makeText(this, "Background apps closed", Toast.LENGTH_SHORT).show()
         }, delayMillis)
     }
+
+    private fun isUsageStatsPermissionGranted(): Boolean {
+        val appOpsManager = getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+        val mode = appOpsManager.checkOpNoThrow("android:get_usage_stats", android.os.Process.myUid(), packageName)
+        return mode == android.app.AppOpsManager.MODE_ALLOWED
+    }
+    private fun getForegroundApps(): List<String> {
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val endTime = System.currentTimeMillis()
+        val startTime = endTime - 1000 * 60 * 60 // One hour ago
+
+        val usageStatsList: List<UsageStats> = usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_DAILY, startTime, endTime
+        )
+
+        val foregroundApps = mutableListOf<String>()
+        if (usageStatsList.isNotEmpty()) {
+            val sortedStats = usageStatsList.sortedByDescending { it.lastTimeUsed }
+            for (usageStats in sortedStats) {
+                if (isAppInForeground(usageStats)) {
+                    foregroundApps.add(usageStats.packageName)
+                }
+            }
+        }
+
+        return foregroundApps
+    }
+
+    private fun isAppInForeground(usageStats: UsageStats): Boolean {
+        val currentTime = System.currentTimeMillis()
+        return usageStats.lastTimeUsed > currentTime - 1000 * 10 // Within the last 10 seconds
+    }
+
 }

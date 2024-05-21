@@ -87,7 +87,8 @@ class BrightnessMonitorService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Brightness Monitor Service")
             .setContentText(contentText)
-            .setSmallIcon(androidx.viewpager.R.drawable.notification_bg)
+//            .setSmallIcon(androidx.viewpager.R.drawable.notification_bg)
+            .setSmallIcon(R.drawable.anbo)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
     }
